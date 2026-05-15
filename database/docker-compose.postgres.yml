@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  database:
+    image: postgres:18.4-alpine 
+    environment:
+      - POSTGRES_USER_FILE=/run/secrets/db_user
+      - POSTGRES_PASSWORD_FILE=/run/secrets/db_password
+      - POSTGRES_DB=todo_production_db
+      - PGDATA=/var/lib/postgresql/data
+      - POSTGRES_INITDB_ARGS=--data-checksums
+      - POSTGRES_INITDB_WALDIR=/var/lib/postgresql/wal # مسار منفصل للـ WAL
+    volumes:
+      - pg_prod_data:/var/lib/postgresql/data
+      - pg_prod_wal:/var/lib/postgresql/wal
+    secrets:
+      - db_user
+      - db_password
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$$$(cat /run/secrets/db_user) -d todo_production_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 128MB
+    ports:
+      - 5432:5432
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - 8080:8080
+volumes:
+  pg_prod_data:
+  pg_prod_wal:
+
+secrets:
+  db_user:
+    file: ./secrets/db_user.txt
+  db_password:
+    file: ./secrets/db_password.txt
