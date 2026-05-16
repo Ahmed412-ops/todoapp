@@ -1,3 +1,4 @@
+import uuid
 from sqlalchemy import Column, Integer, String
 from app.database.database import Base
 
@@ -11,3 +12,5 @@ class User(Base):
     email = Column(String, unique=True, nullable=False)
 
     password = Column(String, nullable=False)
+
+    security_stamp = Column(String,unique=True, nullable=False, default=lambda: str(uuid.uuid4()))
