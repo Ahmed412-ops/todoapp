@@ -3,10 +3,10 @@ from sqlalchemy.orm import Session
 from app.database.dependencies import get_db
 from app.models.user import User
 from app.schemas.user import UserCreate, UserResponse
-from app.auth.security import hash_password
 from app.schemas.auth import LoginRequest, TokenResponse
-from app.auth.security import verify_password
-from app.auth.jwt_handler import create_access_token
+from app.auth.security import hash_password, verify_password
+from app.auth.jwt_handler import create_access_token, get_current_user
+
 
 router = APIRouter(
     prefix="/auth",
@@ -86,4 +86,15 @@ def login(
     return {
         "access_token": access_token,
         "token_type": "bearer"
+    }
+
+@router.get("/me")
+def get_me(
+    current_user: User = Depends(get_current_user)
+):
+
+    return {
+        "id": current_user.id,
+        "username": current_user.username,
+        "email": current_user.email
     }
