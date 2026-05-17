@@ -12,7 +12,8 @@ from app.models.user import User
 
 from app.schemas.task import (
     TaskCreate,
-    TaskResponse
+    TaskResponse,
+    TaskUpdate
 )
 
 from app.auth.jwt_handler import (
@@ -62,3 +63,62 @@ def get_tasks(
     ).all()
 
     return tasks
+
+@router.patch(
+    "/{task_id}",
+    response_model=TaskResponse
+)
+def update_task(
+    task_id: int,
+    request: TaskUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+
+    task = db.query(Task).filter(
+        Task.id == task_id,
+        Task.owner_id == current_user.id
+    ).first()
+
+    if not task:
+        raise HTTPException(
+            status_code=404,
+            detail="Task not found"
+        )
+
+    update_data = request.model_dump(exclude_unset=True) 
+    
+    for key, value in update_data.items():
+        setattr(task, key, value)
+    
+    db.commit()
+
+    db.refresh(task)
+
+    return task
+
+@router.delete("/{task_id}")
+def delete_task(
+    task_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+
+    task = db.query(Task).filter(
+        Task.id == task_id,
+        Task.owner_id == current_user.id
+    ).first()
+
+    if not task:
+        raise HTTPException(
+            status_code=404,
+            detail="Task not found"
+        )
+
+    db.delete(task)
+
+    db.commit()
+
+    return {
+        "message": "Task deleted successfully"
+    }

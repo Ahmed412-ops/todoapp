@@ -5,9 +5,8 @@ from app.models.user import User
 from app.models.task import Task
 
 from app.routers.auth import router as auth_router
-from app.routers.task import (
-    router as tasks_router
-)
+from app.routers.task import router as tasks_router
+
 
 
 app = FastAPI()
