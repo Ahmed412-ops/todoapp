@@ -1,23 +1,17 @@
-from fastapi import (
-    APIRouter,
-    Depends,
-    HTTPException
-)
-
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.database.dependencies import get_db
 from app.models.task import Task
 from app.models.user import User
+from app.schemas.task import TaskCreate, TaskResponse, TaskUpdate
+from app.auth.jwt_handler import get_current_user
 
-from app.schemas.task import (
-    TaskCreate,
-    TaskResponse,
-    TaskUpdate
-)
-
-from app.auth.jwt_handler import (
-    get_current_user
+from app.services.task_service import (
+    create_task as create_task_service,
+    get_user_tasks,
+    update_task as update_task_service,
+    delete_task as delete_task_service
 )
 
 router = APIRouter(
@@ -35,19 +29,11 @@ def create_task(
     current_user: User = Depends(get_current_user)
 ):
 
-    task = Task(
-        title=request.title,
-        description=request.description,
-        owner_id=current_user.id
+    return create_task_service(
+        request=request,
+        current_user=current_user,
+        db=db
     )
-
-    db.add(task)
-
-    db.commit()
-
-    db.refresh(task)
-
-    return task
 
 @router.get(
     "/",
@@ -58,11 +44,11 @@ def get_tasks(
     current_user: User = Depends(get_current_user)
 ):
 
-    tasks = db.query(Task).filter(
-        Task.owner_id == current_user.id
-    ).all()
-
-    return tasks
+    return get_user_tasks(
+        current_user=current_user,
+        db=db
+    )
+    
 
 @router.patch(
     "/{task_id}",
@@ -75,25 +61,18 @@ def update_task(
     current_user: User = Depends(get_current_user)
 ):
 
-    task = db.query(Task).filter(
-        Task.id == task_id,
-        Task.owner_id == current_user.id
-    ).first()
+    task = update_task_service(
+        task_id=task_id,
+        request=request,
+        current_user=current_user,
+        db=db
+    )
 
     if not task:
         raise HTTPException(
             status_code=404,
             detail="Task not found"
         )
-
-    update_data = request.model_dump(exclude_unset=True) 
-    
-    for key, value in update_data.items():
-        setattr(task, key, value)
-    
-    db.commit()
-
-    db.refresh(task)
 
     return task
 
@@ -104,20 +83,17 @@ def delete_task(
     current_user: User = Depends(get_current_user)
 ):
 
-    task = db.query(Task).filter(
-        Task.id == task_id,
-        Task.owner_id == current_user.id
-    ).first()
+    success= delete_task_service(
+        task_id=task_id,
+        current_user=current_user,
+        db=db
+    )
 
-    if not task:
+    if not success:
         raise HTTPException(
             status_code=404,
             detail="Task not found"
         )
-
-    db.delete(task)
-
-    db.commit()
 
     return {
         "message": "Task deleted successfully"
