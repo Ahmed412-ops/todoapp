@@ -69,7 +69,8 @@ def run_migrations_online() -> None:
     password = urllib.parse.quote_plus("$Algo@26#")
     
     # 2. ابني الـ URL بالكامل
-    real_db_url = f"postgresql://todo-admin:{password}@localhost:5432/todo_production_db"
+    # real_db_url = f"postgresql://todo-admin:{password}@localhost:5432/todo_production_db"
+    real_db_url = f"postgresql://todo-admin:{password}@database:5432/todo_production_db"
 
     # 3. هات الكونفيج العادي بتاع alembic
     configuration = context.config.get_section(context.config.config_ini_section) or {}
