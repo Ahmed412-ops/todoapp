@@ -11,8 +11,23 @@ from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 
 from app.core.exception import http_exception_handler, validation_exception_handler
+
+from app.core.logging import (
+    setup_logging
+)
+
+from app.middleware.logging_middleware import (
+    logging_middleware
+)
+
+
 app = FastAPI()
 
+setup_logging()
+
+app.middleware("http")(
+    logging_middleware
+)
 
 app.include_router(auth_router)
 app.include_router(tasks_router)

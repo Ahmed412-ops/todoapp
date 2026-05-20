@@ -8,6 +8,10 @@ from app.schemas.task import (
     TaskUpdate
 )
 
+from app.repositories.task_repository import TaskRepository
+
+
+
 
 def create_task(
     request: TaskCreate,
@@ -15,31 +19,24 @@ def create_task(
     db: Session
 ):
 
+    repository = TaskRepository(db)
     task = Task(
         title=request.title,
         description=request.description,
         owner_id=current_user.id
     )
 
-    db.add(task)
-
-    db.commit()
-
-    db.refresh(task)
-
-    return task
+    return repository.create(task)
 
 
 def get_user_tasks(
     current_user: User,
     db: Session
 ):
-
-    tasks = db.query(Task).filter(
-        Task.owner_id == current_user.id
-    ).all()
-
-    return tasks
+    repository = TaskRepository(db)
+    return repository.get_user_tasks(
+        current_user.id
+    )
 
 
 def update_task(
@@ -48,11 +45,11 @@ def update_task(
     current_user: User,
     db: Session
 ):
-
-    task = db.query(Task).filter(
-        Task.id == task_id,
-        Task.owner_id == current_user.id
-    ).first()
+    repository = TaskRepository(db)
+    task = repository.get_by_id_and_owner(
+        task_id,
+        current_user.id
+    )
 
     if not task:
         return None
@@ -64,11 +61,7 @@ def update_task(
     for key, value in update_data.items():
         setattr(task, key, value)
 
-    db.commit()
-
-    db.refresh(task)
-
-    return task
+    return repository.save(task)
 
 
 def delete_task(
@@ -76,17 +69,14 @@ def delete_task(
     current_user: User,
     db: Session
 ):
-
-    task = db.query(Task).filter(
-        Task.id == task_id,
-        Task.owner_id == current_user.id
-    ).first()
+    repository = TaskRepository(db)
+    task = repository.get_by_id_and_owner(
+        task_id,
+        current_user.id
+    )
 
     if not task:
         return False
 
-    db.delete(task)
-
-    db.commit()
-
+    repository.delete(task)
     return True
