@@ -1,17 +1,36 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import (
+    APIRouter,
+    Depends,
+    HTTPException
+)
+
 from sqlalchemy.orm import Session
 
 from app.database.dependencies import get_db
-from app.models.task import Task
-from app.models.user import User
-from app.schemas.task import TaskCreate, TaskResponse, TaskUpdate
-from app.auth.jwt_handler import get_current_user
 
-from app.services.task_service import (
+from app.models.user import User
+
+from app.schemas.task import (
+    TaskCreate,
+    TaskResponse,
+    TaskUpdate
+)
+
+from app.schemas.common import ApiResponse
+
+from app.auth.jwt_handler import (
+    get_current_user
+)
+
+from app.services.task_services import (
     create_task as create_task_service,
     get_user_tasks,
     update_task as update_task_service,
     delete_task as delete_task_service
+)
+
+from app.utils.response import (
+    success_response
 )
 
 router = APIRouter(
@@ -19,9 +38,10 @@ router = APIRouter(
     tags=["Tasks"]
 )
 
+
 @router.post(
     "/",
-    response_model=TaskResponse
+    response_model=ApiResponse
 )
 def create_task(
     request: TaskCreate,
@@ -29,30 +49,46 @@ def create_task(
     current_user: User = Depends(get_current_user)
 ):
 
-    return create_task_service(
+    task = create_task_service(
         request=request,
         current_user=current_user,
         db=db
     )
 
+    return success_response(
+        message="Task created successfully",
+        data=TaskResponse.model_validate(task)
+    )
+
+
 @router.get(
     "/",
-    response_model=list[TaskResponse]
+    response_model=ApiResponse
 )
 def get_tasks(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
 
-    return get_user_tasks(
+    tasks = get_user_tasks(
         current_user=current_user,
         db=db
     )
-    
+
+    tasks_response = [
+        TaskResponse.model_validate(task)
+        for task in tasks
+    ]
+
+    return success_response(
+        message="Tasks fetched successfully",
+        data=tasks_response
+    )
+
 
 @router.patch(
     "/{task_id}",
-    response_model=TaskResponse
+    response_model=ApiResponse
 )
 def update_task(
     task_id: int,
@@ -74,16 +110,23 @@ def update_task(
             detail="Task not found"
         )
 
-    return task
+    return success_response(
+        message="Task updated successfully",
+        data=TaskResponse.model_validate(task)
+    )
 
-@router.delete("/{task_id}")
+
+@router.delete(
+    "/{task_id}",
+    response_model=ApiResponse
+)
 def delete_task(
     task_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
 
-    success= delete_task_service(
+    success = delete_task_service(
         task_id=task_id,
         current_user=current_user,
         db=db
@@ -95,6 +138,6 @@ def delete_task(
             detail="Task not found"
         )
 
-    return {
-        "message": "Task deleted successfully"
-    }
+    return success_response(
+        message="Task deleted successfully"
+    )
