@@ -9,6 +9,7 @@ from alembic import context
 from app.database.database import Base
 from app.models.user import User
 from app.models.task import Task
+from app.core.config import settings
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -66,17 +67,17 @@ def run_migrations_online() -> None:
 
     """
 
-    password = urllib.parse.quote_plus("$Algo@26#")
+    #password = urllib.parse.quote_plus("$Algo@26#")
     
     # 2. ابني الـ URL بالكامل
     # real_db_url = f"postgresql://todo-admin:{password}@localhost:5432/todo_production_db"
-    real_db_url = f"postgresql://todo-admin:{password}@database:5432/todo_production_db"
-
+    #real_db_url = f"postgresql://todo-admin:{password}@database:5432/todo_production_db"
+    real_db_url = settings.DATABASE_URL
     # 3. هات الكونفيج العادي بتاع alembic
     configuration = context.config.get_section(context.config.config_ini_section) or {}
     
     # 4. اجبر الـ URL الحقيقي يعدي جوه الـ engine مباشرة بدون المرور بـ config.ini
-    configuration["sqlalchemy.url"] = real_db_url
+    configuration["sqlalchemy.url"] = settings.DATABASE_URL
     connectable = engine_from_config(
         # config.get_section(config.config_ini_section, {}),
         configuration,
